@@ -1,105 +1,57 @@
-import subprocess
-import logging
-from os import path
-from settings import SettingsManager
-from helpers import get_user
+import os
 
-USER = get_user()
-HOME_PATH = "/home/" + USER
-HOMEBREW_PATH = HOME_PATH + "/homebrew"
-
-logging.basicConfig(filename="/tmp/deckyusbip.log",
-                    format='[DeckyUSBIP] %(asctime)s %(levelname)s %(message)s',
-                    filemode='w+',
-                    force=True)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-
-def device_mapper(xn):
-    components = xn.split("\n")
-    return {
-        "id": components[0].split(' ')[3],
-        "name": components[1].lstrip(),
-    }
-
-
-def get_available_devices():
-    result = subprocess.run(["usbip", "list", "-l"], text=True, capture_output=True).stdout
-    devices = result.split("\n\n")
-    devices.pop(-1)
-    mapped = map(device_mapper, devices)
-    return next(mapped, None)
-
-
-def run_install_script():
-    logger.info("Running Install Script")
-    subprocess.run(["bash", path.dirname(__file__) + "/extensions/install"], cwd=path.dirname(__file__) + "/extensions")
-
-
-def run_uninstall_script():
-    logger.info("Running Uninstall Script")
-    subprocess.run(["bash", path.dirname(__file__) + "/extensions/uninstall"], cwd=path.dirname(__file__) + "/extensions")
-
+# The decky plugin module is located at decky-loader/plugin
+# For easy intellisense checkout the decky-loader code repo
+# and add the `decky-loader/plugin/imports` path to `python.analysis.extraPaths` in `.vscode/settings.json`
+import decky
+import asyncio
 
 class Plugin:
+    # A normal method. It can be called from the TypeScript side using @decky/api.
+    async def add(self, left: int, right: int) -> int:
+        return left + right
 
-    settings: SettingsManager = SettingsManager("deckyusbip", path.join(HOMEBREW_PATH, "settings"))
+    async def long_running(self):
+        await asyncio.sleep(15)
+        # Passing through a bunch of random data, just as an example
+        await decky.emit("timer_event", "Hello from the backend!", True, 2)
 
+    # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
     async def _main(self):
-        logger.info("Running install script if not installed")
-        installed = self.settings.getSetting("installed", False)
-        if not installed:
-            logger.info("Not installed, running install script")
-            run_install_script()
+        self.loop = asyncio.get_event_loop()
+        decky.logger.info("Hello World!")
 
-    # Lists the usb devices from usbip.
-    async def show(self):
-        result = subprocess.run(["usbip", "list", "-l"], text=True, capture_output=True).stdout
-        devices = result.split("\n\n")
-        devices.pop(-1)
-        mapped = map(device_mapper, devices)
-        return list(mapped)
-
-    # Binds usb device
-    async def up(self, id):
-        logger.info("Binding device: " + id)
-        result = subprocess.run(["usbip", "bind", "-b", id], text=True, capture_output=True).stdout
-        return result
-
-    # Unbinds usb device
-    async def down(self, id):
-        logger.info("Unbinding device: " + id)
-        result = subprocess.run(["usbip", "unbind", "-b", id], text=True, capture_output=True).stdout
-        return result
-
-    # Checks if usbip is installed
-    async def is_usbip_installed(self):
-        try:
-            subprocess.run(["usbip", "list", "-l"], check=True)
-            return True
-        except subprocess.CalledProcessError:
-            return False
-
-    # The installed setting
-    async def is_plugin_installed(self):
-        return self.settings.getSetting("installed", False)
-
-    # Install plugin
-    async def install_plugin(self):
-        logger.info("Running install script...")
-        self.settings.setSetting("installed", True)
-        run_install_script()
-        return True
-
-    # Uninstall plugin
-    async def uninstall_plugin(self):
-        logger.info("Running uninstall script...")
-        self.settings.setSetting("installed", False)
-        run_uninstall_script()
-        return True
-
-    # Clean-up on aisle 5
+    # Function called first during the unload process, utilize this to handle your plugin being stopped, but not
+    # completely removed
     async def _unload(self):
-        subprocess.run(["bash", path.dirname(__file__) + "/extensions/uninstall"], cwd=path.dirname(__file__) + "/extensions")
+        decky.logger.info("Goodnight World!")
         pass
+
+    # Function called after `_unload` during uninstall, utilize this to clean up processes and other remnants of your
+    # plugin that may remain on the system
+    async def _uninstall(self):
+        decky.logger.info("Goodbye World!")
+        pass
+
+    async def start_timer(self):
+        self.loop.create_task(self.long_running())
+
+    # Migrations that should be performed before entering `_main()`.
+    async def _migration(self):
+        decky.logger.info("Migrating")
+        # Here's a migration example for logs:
+        # - `~/.config/decky-template/template.log` will be migrated to `decky.decky_LOG_DIR/template.log`
+        decky.migrate_logs(os.path.join(decky.DECKY_USER_HOME,
+                                               ".config", "decky-template", "template.log"))
+        # Here's a migration example for settings:
+        # - `~/homebrew/settings/template.json` is migrated to `decky.decky_SETTINGS_DIR/template.json`
+        # - `~/.config/decky-template/` all files and directories under this root are migrated to `decky.decky_SETTINGS_DIR/`
+        decky.migrate_settings(
+            os.path.join(decky.DECKY_HOME, "settings", "template.json"),
+            os.path.join(decky.DECKY_USER_HOME, ".config", "decky-template"))
+        # Here's a migration example for runtime data:
+        # - `~/homebrew/template/` all files and directories under this root are migrated to `decky.decky_RUNTIME_DIR/`
+        # - `~/.local/share/decky-template/` all files and directories under this root are migrated to `decky.decky_RUNTIME_DIR/`
+        decky.migrate_runtime(
+            os.path.join(decky.DECKY_HOME, "template"),
+            os.path.join(decky.DECKY_USER_HOME, ".local", "share", "decky-template"))

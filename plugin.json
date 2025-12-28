@@ -1,10 +1,11 @@
 {
-  "name": "DeckyUSBIP",
-  "author": "Julian Smith",
-  "flags": ["root"],
+  "name": "Example Plugin",
+  "author": "John Doe",
+  "flags": ["debug", "_root"],
+  "api_version": 1,
   "publish": {
-    "tags": ["usbip", "root"],
-    "description": "Enables USBIP binding and unbinding support in Game mode",
-    "image": ""
+    "tags": ["template", "root"],
+    "description": "Decky example plugin.",
+    "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
   }
 }

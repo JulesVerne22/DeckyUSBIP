@@ -1,5 +1,0 @@
-#!/bin/bash
-
-OS_ID="ID=steamos"
-VERSION_ID=$(grep VERSION_ID /etc/os-release)
-

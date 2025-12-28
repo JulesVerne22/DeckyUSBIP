@@ -1,94 +1,115 @@
 import {
-  definePlugin,
+  ButtonItem,
   PanelSection,
   PanelSectionRow,
-  ServerAPI,
-  staticClasses,
-  ButtonItem,
-} from "decky-frontend-lib";
-
+  Navigation,
+  staticClasses
+} from "@decky/ui";
 import {
-  VFC,
-  useEffect,
-  useState
-} from "react";
+  addEventListener,
+  removeEventListener,
+  callable,
+  definePlugin,
+  toaster,
+  // routerHook
+} from "@decky/api"
+import { useState } from "react";
+import { FaShip } from "react-icons/fa";
 
-import { FaShieldAlt } from "react-icons/fa";
+// import logo from "../assets/logo.png";
 
-type Device = {
-  id: string,
-  name: string,
-}
+// This function calls the python function "add", which takes in two numbers and returns their sum (as a number)
+// Note the type annotations:
+//  the first one: [first: number, second: number] is for the arguments
+//  the second one: number is for the return value
+const add = callable<[first: number, second: number], number>("add");
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
+// This function calls the python function "start_timer", which takes in no arguments and returns nothing.
+// It starts a (python) timer which eventually emits the event 'timer_event'
+const startTimer = callable<[], void>("start_timer");
 
-  const [ loaded, setLoaded ] = useState(false);
-  const [ devices, setDevices ] = useState<Device[]>([]);
+function Content() {
+  const [result, setResult] = useState<number | undefined>();
 
-  const loadDevices = async () => {
-    try {
-      const response = await serverAPI.callPluginMethod<{}, Device[]>('show', {});
-      const devices = response.result as Device[];
-
-      setDevices(devices);
-    } catch (error) {
-      console.error(error);
-    }
-
-    setLoaded(true);
-  }
-
-  const toggleBind = async (device: Device, switchValue: boolean) => {
-    await serverAPI.callPluginMethod((switchValue) ? 'up' : 'down', { id: device.id });
-  }
-
-  useEffect(() => {
-    loadDevices();
-  }, []);
+  const onClick = async () => {
+    const result = await add(Math.random(), Math.random());
+    setResult(result);
+  };
 
   return (
-    <>
-      <PanelSection title="Devices">
+    <PanelSection title="Panel Section">
+      <PanelSectionRow>
+        <ButtonItem
+          layout="below"
+          onClick={onClick}
+        >
+          {result ?? "Add two numbers via Python"}
+        </ButtonItem>
+      </PanelSectionRow>
+      <PanelSectionRow>
+        <ButtonItem
+          layout="below"
+          onClick={() => startTimer()}
+        >
+          {"Start Python timer"}
+        </ButtonItem>
+      </PanelSectionRow>
 
-        {loaded && devices.length == 0 && <PanelSectionRow>
-          No Devices Found
-        </PanelSectionRow>}
+      {/* <PanelSectionRow>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <img src={logo} />
+        </div>
+      </PanelSectionRow> */}
 
-        {devices.length > 0 && devices.map((device) => (
-          <PanelSectionRow>
-            {device.name}
-            <ButtonItem onClick={() => {
-              toggleBind(device, true)
-            }}>
-            Bind {device.id}
-            </ButtonItem>
-            <ButtonItem onClick={() => {
-              toggleBind(device, false)
-            }}>
-            Unbind {device.id}
-            </ButtonItem>
-          </PanelSectionRow>
-        ))}
-
-      </PanelSection>
-      <PanelSection title="Settings">
-        <PanelSectionRow>
-          <ButtonItem onClick={() => {
-            loadDevices()
-          }}>
-          Reload USB devices
-          </ButtonItem>
-        </PanelSectionRow>
-
-      </PanelSection>
-    </>
+      {/*<PanelSectionRow>
+        <ButtonItem
+          layout="below"
+          onClick={() => {
+            Navigation.Navigate("/decky-plugin-test");
+            Navigation.CloseSideMenus();
+          }}
+        >
+          Router
+        </ButtonItem>
+      </PanelSectionRow>*/}
+    </PanelSection>
   );
 };
 
-export default definePlugin((serverApi: ServerAPI) => {
+export default definePlugin(() => {
+  console.log("Template plugin initializing, this is called once on frontend startup")
+
+  // serverApi.routerHook.addRoute("/decky-plugin-test", DeckyPluginRouterTest, {
+  //   exact: true,
+  // });
+
+  // Add an event listener to the "timer_event" event from the backend
+  const listener = addEventListener<[
+    test1: string,
+    test2: boolean,
+    test3: number
+  ]>("timer_event", (test1, test2, test3) => {
+    console.log("Template got timer_event with:", test1, test2, test3)
+    toaster.toast({
+      title: "template got timer_event",
+      body: `${test1}, ${test2}, ${test3}`
+    });
+  });
+
   return {
-    title: <div className={staticClasses.Title}>DeckyUSBIP</div>,
-    content: <Content serverAPI={serverApi} />,
-    icon: <FaShieldAlt />,
+    // The name shown in various decky menus
+    name: "Test Plugin",
+    // The element displayed at the top of your plugin's menu
+    titleView: <div className={staticClasses.Title}>Decky Example Plugin</div>,
+    // The content of your plugin's menu
+    content: <Content />,
+    // The icon displayed in the plugin list
+    icon: <FaShip />,
+    // The function triggered when your plugin unloads
+    onDismount() {
+      console.log("Unloading")
+      removeEventListener("timer_event", listener);
+      // serverApi.routerHook.removeRoute("/decky-plugin-test");
+    },
   };
 });
