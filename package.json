@@ -1,14 +1,14 @@
 {
-  "name": "tunneldeck",
-  "version": "1.0.2",
-  "description": "Enables VPN support within Gaming Mode.",
+  "name": "deckyusbip",
+  "version": "1.0.0",
+  "description": "Enabled USBIP support in Game mode",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/steve228uk/TunnelDeck.git"
+    "url": "git+https://github.com/JulesVerne22/DeckyUSBIP.git"
   },
   "keywords": [
     "decky",
@@ -17,12 +17,12 @@
     "steam-deck",
     "deck"
   ],
-  "author": "Stephen Radford <steve228uk@gmail.com>",
+  "author": "Julian Smith <juliari114@gmail.com>",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/steve228uk/TunnelDeck/issues"
+    "url": "https://github.com/JulesVerne22/DeckyUSBIP/issues"
   },
-  "homepage": "https://github.com/steve228uk/TunnelDeck#readme",
+  "homepage": "https://github.com/JulesVerne22/DeckyUSBIP#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.1.0",
     "@rollup/plugin-json": "^4.1.0",
