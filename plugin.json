@@ -1,7 +1,7 @@
 {
   "name": "DeckyUSBIP",
   "author": "Julian Smith",
-  "flags": ["debug", "_root"],
+  "flags": ["debug", "root"],
   "api_version": 1,
   "publish": {
     "tags": ["usbip", "root"],
